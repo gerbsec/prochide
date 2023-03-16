@@ -1,4 +1,4 @@
-libprocesshider
+prochide
 ===============
 
 Hide a process under Linux using the ld preloader.
@@ -8,16 +8,16 @@ Full tutorial available at https://sysdigcloud.com/hiding-linux-processes-for-fu
 In short, compile the library:
 
 ```
-gianluca@sid:~/libprocesshider$ make
+gerbsec@lool:~/libprocesshider$ make
 gcc -Wall -fPIC -shared -o libprocesshider.so processhider.c -ldl
-gianluca@sid:~/libprocesshider$ sudo mv libprocesshider.so /usr/local/lib/
+gerbsec@lool:~/libprocesshider$ sudo mv libprocesshider.so /usr/local/lib/
 
 ```
 
 Load it with the global dynamic linker
 
 ```
-root@sid:~# echo /usr/local/lib/libprocesshider.so >> /etc/ld.so.preload
+gerbsec@lool:~# echo /usr/local/lib/libprocesshider.so >> /etc/ld.so.preload
 ```
 
 Better way:
@@ -25,14 +25,8 @@ Better way:
 export LD_PRELOAD=${PWD}/libprocesshider.so
 ```
 
-And your process will be off the radar 
+And your process will be off the radar
 
-```
-gianluca@sid:~$ sudo ps aux
-USER PID %CPU %MEM VSZ RSS TTY STAT START TIME COMMAND
-...
+I updated the code to hide everything with the "string" that you provide.
 
-gianluca@sid:~$ sudo lsof -ni
-COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME
-...
-```
+With the old code it only used process names and that doesn't work. With this version it bases it off the cmdline which in turn will for example hide `bash` regardless of when it was used in the command. :D
