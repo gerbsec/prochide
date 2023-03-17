@@ -1,26 +1,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 static int get_process_name(char *pid, char *buffer)
 {
-    long length;
+    memset(buffer, 0, sizeof(buffer));
     if (strspn(pid, "0123456789") != strlen(pid))
     {
         return 0;
     }
-
-    char tmp[255];
+    char tmp[256];
     snprintf(tmp, sizeof(tmp), "/proc/%s/cmdline", pid);
+
     FILE *f = fopen(tmp, "rb");
-    puts(tmp);
-    if (f)
+    if (f == NULL)
     {
-        fscanf(tmp, sizeof(buffer), buffer);
+        return 0;
     }
-    if (buffer){
-        printf("%s", buffer);
+    char *arg = 0;
+    size_t size = 0;
+    while (getdelim(&arg, &size, 0, f) != -1)
+    {
+        strcat(buffer, arg);
     }
     return 0;
 }
@@ -28,7 +29,7 @@ static int get_process_name(char *pid, char *buffer)
 int main()
 {
     char process_name[1000];
-    get_process_name("3430", process_name);
+    get_process_name("9181", process_name);
     puts(process_name);
     return 0;
 }
